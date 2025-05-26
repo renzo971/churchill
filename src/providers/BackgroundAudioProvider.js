@@ -10,7 +10,6 @@ function BackgroundAudioProvider({ children }) {
   const [isReady, setIsReady] = useState(false);
   const [localUrl, setLocalUrl] = useState('');
   const [currentTrack, setCurrentTrack] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // Nuevo estado
   const { myDocumentsPath } = useApp();
   const [showOptions, setShowOptions] = useState(false);
 
@@ -19,7 +18,6 @@ function BackgroundAudioProvider({ children }) {
       if (audios?.length) {
         setPlaylist(audios);
       }
-      setIsLoading(false); // Termina la carga inicial
     });
   }, []);
 
@@ -39,15 +37,14 @@ function BackgroundAudioProvider({ children }) {
   }, [currentTrack, myDocumentsPath]);
 
   // Loader mientras carga
-  if (isLoading || !localUrl) {
+  if (playlist.length !== 0 && localUrl === "") {
     return (
       <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <Spinner animation="border" role="status" />
-        <div>Cargando audio...</div>
+        <Spinner animation="border" role="status" color='white' />
+        <div className='text-white'>Verificando listas de audio...</div>
       </div>
     );
   }
-  console.log(showOptions);
 
   return (
     <BackgroundAudioContext.Provider

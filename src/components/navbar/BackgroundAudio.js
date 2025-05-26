@@ -1,6 +1,6 @@
-import { useContext, useRef, useState, useEffect } from 'react';
+import { useContext, useRef, useState, useEffect, useMemo } from 'react';
 import useSound from 'use-sound';
-import { Close, PlayArrow, Stop } from '@mui/icons-material';
+import { Close, FolderCopy, PlayArrow, Stop } from '@mui/icons-material';
 import {
   Badge,
   Button,
@@ -12,7 +12,51 @@ import {
 import { BackgroundAudioContext } from 'providers/BackgroundAudioProvider';
 import { Sidebar } from 'components/sidebar';
 
+// Constantes
+const SOUND_CONFIG = {
+  volume: 1,
+  playbackRate: 1,
+  interrupt: true,
+  html5: true,
+};
+
+const PLAY_DELAY = 50;
+
+// Componente para cada pista de audio
+const TrackItem = ({ track, index, currentIndex, isPlaying, onClick }) => (
+  <ListGroup.Item
+    action
+    active={currentIndex === index}
+    className="d-flex justify-content-between align-items-start"
+    onClick={onClick}
+    style={{ cursor: 'pointer' }}
+  >
+    <div className="ms-2 me-auto">
+      <div className="fw-bold">
+        {index + 1}. {track.replace('.mp3', '')}
+      </div>
+      {isPlaying && currentIndex === index && (
+        <span className="text-success">Reproduciendo</span>
+      )}
+    </div>
+    <Badge bg={currentIndex === index ? 'success' : 'primary'} pill>
+      {currentIndex === index && isPlaying ? <Stop /> : <PlayArrow />}
+    </Badge>
+  </ListGroup.Item>
+);
+
 export function BackgroundAudio() {
+  const folder = useMemo(() => {
+    const subPath = 'Churchill\\Pistas\\Fondomusical';
+
+    return {
+      open: () => window.electronAPI?.openDirectory(subPath),
+      getPath: async () => {
+        const basePath = await window.electronAPI?.getDirectoryPath(subPath);
+        return `file://${basePath}`;
+      },
+    };
+  }, []);
   const {
     localUrl,
     setIsReady,
@@ -23,73 +67,49 @@ export function BackgroundAudio() {
     setShowOptions,
   } = useContext(BackgroundAudioContext);
 
-  const playAllRef = useRef(false);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [pendingIndex, setPendingIndex] = useState(null);
 
   const [play, { stop, isPlaying }] = useSound(localUrl, {
-    volume: 1,
-    playbackRate: 1,
-    interrupt: true,
-    html5: true,
+    ...SOUND_CONFIG,
     onload: () => setIsReady(true),
     onloaderror: (err) => {
-      console.error('Error cargando audio ' + localUrl, err);
+      console.error(`Error cargando audio ${localUrl}:`, err);
       setIsReady(false);
-    },
-    onend: () => {
-      if (playAllRef.current && playlist.length > 0) {
-        setIndex((i) => (i + 1) % playlist.length);
-        setShouldPlay(true); // Para que siga reproduciendo automáticamente
-      } else {
-        setShouldPlay(false);
-      }
     },
   });
 
-  // Efecto para reproducir solo cuando el usuario lo indique
   useEffect(() => {
-    if (shouldPlay && localUrl) {
-      stop(); // Detén cualquier reproducción previa antes de reproducir
-      setTimeout(() => play(), 50); // Pequeño delay para evitar solapamientos
+    if (shouldPlay && localUrl && playlist.length > 0) {
+      stop();
+      const timer = setTimeout(() => play(), PLAY_DELAY);
+      return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldPlay, localUrl]);
+  }, [shouldPlay, localUrl, play, stop, playlist.length]);
 
-  // Si hay un pendingIndex, primero detenemos, luego cambiamos el índice y reproducimos
   useEffect(() => {
-    if (pendingIndex !== null) {
+    if (pendingIndex !== null && playlist.length > 0) {
       stop();
       setIndex(pendingIndex);
       setShouldPlay(true);
       setPendingIndex(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingIndex]);
+  }, [pendingIndex, setIndex, stop, playlist.length]);
 
-  if (!localUrl) return <p>No hay pistas disponibles</p>;
-
-  // Botón para reproducir todas en bucle
-  const handlePlayAll = () => {
-    playAllRef.current = true;
-    stop();
-    setShouldPlay(false);
-    setTimeout(() => setShouldPlay(true), 50); // Reinicia la reproducción
-  };
-
-  // Botón para detener todo y salir del modo bucle
-  const handleStopAll = () => {
-    playAllRef.current = false;
-    stop();
-    setShouldPlay(false);
-  };
-
-  // Reproducir pista individual (no activa el bucle)
   const handlePlay = (idx) => {
-    playAllRef.current = false;
-    stop();
-    setShouldPlay(false);
-    setPendingIndex(idx); // Esto asegura que primero se detenga, luego cambie el índice y luego reproduzca
+    if (index === idx && isPlaying) {
+      stop();
+      setShouldPlay(false);
+    } else {
+      stop();
+      setShouldPlay(false);
+      setPendingIndex(idx);
+    }
+  };
+
+  const handleOpenPath = (e) => {
+    e.preventDefault(); console.log(folder);
+    folder.open();
   };
 
   return (
@@ -103,56 +123,45 @@ export function BackgroundAudio() {
       <h1 className="display-4">Fondos Musicales</h1>
       <p className="text-muted">
         Agrega su pista en formato <i>.mp3</i> en la carpeta{' '}
-        <strong>Documentos/Pistas/fondosMusicales</strong>
+        <strong>Documentos/Pistas/Fondomusical</strong>{' '}
+        <OverlayTrigger
+          placement="top"
+          overlay={<Tooltip>Abrir directorio de pistas</Tooltip>}
+        >
+          <Button
+            className="mr-2"
+            variant="secondary"
+            onClick={handleOpenPath}
+          >
+            <FolderCopy />
+          </Button>
+        </OverlayTrigger>
       </p>
       <hr />
-      <div className="mb-3 d-flex gap-2">
-        {!isPlaying ? (
-          <OverlayTrigger
-            placement="bottom"
-            overlay={<Tooltip>Reproducir todas</Tooltip>}
-          >
-            <Button onClick={handlePlayAll} variant="success">
-              <PlayArrow /> Reproducir todas
-            </Button>
-          </OverlayTrigger>
-        ) : (
-          <OverlayTrigger
-            placement="bottom"
-            overlay={<Tooltip>Detener</Tooltip>}
-          >
-            <Button onClick={handleStopAll} variant="light">
-              <Stop /> Detener
-            </Button>
-          </OverlayTrigger>
-        )}
-      </div>
-      <div style={{ marginTop: 16 }}>
-        <ListGroup>
-          {playlist.map((track, idx) => (
-            <ListGroup.Item
-              key={track}
-              action
-              active={index === idx}
-              className="d-flex justify-content-between align-items-start"
-              onClick={() => handlePlay(idx)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="ms-2 me-auto">
-                <div className="fw-bold">
-                  {idx + 1}. {track.replace('.mp3', '')}
-                </div>
-                {isPlaying && index === idx && (
-                  <span className="text-success">Reproduciendo</span>
-                )}
-              </div>
-              <Badge bg={index === idx ? 'success' : 'primary'} pill>
-                {index === idx && isPlaying ? <Stop /> : <PlayArrow />}
-              </Badge>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
-      </div>
+
+      {playlist.length === 0 ? (
+        <div className="text-center text-muted mt-4">
+          <p>No hay pistas de audio disponibles</p>
+          <p>Agrega archivos MP3 al directorio de pistas</p>
+          <p>y volver a abrir la aplicación</p>
+        </div>
+      ) : (
+        <div style={{ marginTop: 16 }}>
+          <ListGroup>
+            {playlist.map((track, idx) => (
+              <TrackItem
+                key={track}
+                track={track}
+                index={idx}
+                currentIndex={index}
+                isPlaying={isPlaying}
+                onClick={() => handlePlay(idx)}
+              />
+            ))}
+          </ListGroup>
+        </div>
+      )}
+
       <Button
         className="p-0 text-dark"
         variant="link"

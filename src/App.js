@@ -39,6 +39,7 @@ function App() {
                   <Schedule />
 
                   <Settings />
+
                   <BackgroundAudio />
                 </BackgroundAudioProvider>
               </BirthdaysProvider>
