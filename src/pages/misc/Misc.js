@@ -17,16 +17,23 @@ import { ResourceModal } from './modal';
 
 const useSettings = createPersistedState(BROADCAST.SETTINGS);
 const useBroadcast = createPersistedState(BROADCAST.CHANNEL);
-const useResources = createPersistedState(BROADCAST.RESOURCES);
 
 export default function MiscPage() {
   const [settings] = useSettings(BROADCAST.INITIAL_SETTINGS);
   const [, setMessage] = useBroadcast(BROADCAST.INITIAL_CHANNEL);
-  const [resources, setResources] = useResources(BROADCAST.INITIAL_RESOURCES);
+  const [resources, setResources] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showLogo, setShowLogo] = useState(true);
   const [current, setCurrent] = useState(resources[0] || null);
   const { presenting } = usePresenter();
+  useEffect(() => {
+    const subPath = 'Churchill\\Images';
+    window.electronAPI?.getBackgroundImages(subPath).then((images) => {
+      if (images?.length) {
+        setResources(images);
+      }
+    });
+  }, [showModal]);
 
   const handleSave = useCallback(
     (data) => {

@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   getBackgroundImages: (relativePath) =>
     ipcRenderer.invoke('get-background-images', relativePath),
+  saveImage: (fileName, buffer) =>
+    ipcRenderer.invoke('save-image', fileName, buffer),
   getBackgroundAudios: () => ipcRenderer.invoke('get-background-audios'),
   getDirectoryPath: (subPath) =>
     ipcRenderer.invoke('get-directory-path', subPath),

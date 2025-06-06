@@ -1,6 +1,6 @@
 const electron = require('electron');
 // Module to control application life.
-const { app, ipcMain, BrowserWindow, shell, screen, desktopCapturer } =
+const { app, ipcMain, BrowserWindow, shell, screen, desktopCapturer, dialog } =
   electron;
 
 const path = require('path');
@@ -37,7 +37,7 @@ function createWindow() {
   mainWindow.loadURL(startUrl);
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Hide menu
   mainWindow.removeMenu();
@@ -104,22 +104,54 @@ ipcMain.handle('get-background-images', async (_, relativePath) => {
     const files = fs.readdirSync(folderPath);
     const imageFiles = files.filter((file) => /\.(jpg|jpeg|png)$/i.test(file));
 
-    const images = imageFiles.map((file) => {
+    const images = imageFiles.map((file, idx) => {
       const filePath = path.join(folderPath, file);
       const extension = path.extname(file).replace('.', '');
-      const name = path.basename(file, `.${extension}`);
-      const base64 = `data:image/${extension};base64,${fs.readFileSync(
-        filePath,
-        { encoding: 'base64' }
-      )}`;
+      const title = path.basename(file, `.${extension}`);
+      const id = `${title}-${idx}-${Date.now()}`; // Generar un ID único
+      let bg = '';
+      try {
+        const base64 = fs.readFileSync(filePath, { encoding: 'base64' });
+        bg = `data:image/${extension};base64,${base64}`;
+      } catch (e) {
+        console.error(`Error leyendo imagen: ${filePath}`, e);
+        bg = '';
+      }
+      const description = `Imagen de fondo: ${title}`;
 
-      return { name, extension, base64 };
+      return { id, title, description, bg };
     });
 
     return images;
   } catch (error) {
     console.error('Error reading folder:', error);
     return [];
+  }
+});
+
+ipcMain.handle('save-image', async (_, fileName, buffer) => {
+  try {
+    const saveDir = path.join(app.getPath('documents'), 'Churchill', 'Images');
+    const savePath = path.join(saveDir, fileName);
+
+    // Crear la carpeta si no existe
+    if (!fs.existsSync(saveDir)) {
+      fs.mkdirSync(saveDir, { recursive: true });
+    }
+
+    // Verifica si el buffer es válido
+    if (!buffer || buffer.length === 0) {
+      throw new Error('El archivo está vacío o no se pudo cargar.');
+    }
+
+    // Guarda el archivo
+    fs.writeFileSync(savePath, Buffer.from(buffer));
+
+    return 'Imagen guardada correctamente en: ' + savePath;
+  } catch (err) {
+    // Muestra alerta al usuario si falla
+    dialog.showErrorBox('Error al guardar la imagen', err.message);
+    throw err; // Re-lanza el error para que lo capture el renderer si lo deseas
   }
 });
 // 👇 Este handler debe estar aquí:

@@ -142,7 +142,7 @@ export function ListImage({
         </div>
       </ImageStyled>
 
-      {active && !disabled && (
+      {/** active && !disabled && (
         <div className="settings">
           <OverlayTrigger placement="right" overlay={<Tooltip>Editar</Tooltip>}>
             <Button variant="dark" onClick={onEdit}>
@@ -159,7 +159,7 @@ export function ListImage({
             </Button>
           </OverlayTrigger>
         </div>
-      )}
+      )**/}
     </ImageWrapperStyled>
   );
 }
