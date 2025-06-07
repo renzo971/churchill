@@ -70,6 +70,11 @@ Storage.upload = (file, cb = () => {}) => {
 
 Storage.download = (fileName = 'data.json') => {
   const content = Storage.getAll();
+  //Opcion para filtrar solo las configuraciones de los himnos asi ya no habrá problemas al importar las preferencias
+  /* const content = Storage.getAll().filter(
+    (item) =>
+      typeof item.key === 'string' && item.key.toLowerCase().includes('hymn')
+  ); */
   const a = document.createElement('a');
   const file = new Blob([JSON.stringify(content, null, 2)], {
     type: 'text/json',

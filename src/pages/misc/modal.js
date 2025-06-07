@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Form, Modal } from 'react-bootstrap';
 
-export function ResourceModal({ show, resource, handleClose, handleSave }) {
+export function ResourceModal({ show, handleClose }) {
   const [error, setError] = useState(null);
   const [file, setFile] = useState(null);
 

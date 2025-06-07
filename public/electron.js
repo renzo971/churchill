@@ -128,6 +128,23 @@ ipcMain.handle('get-background-images', async (_, relativePath) => {
     return [];
   }
 });
+ipcMain.handle('delete-background-image', async (_, relativePath, fileName) => {
+  try {
+    const documentsPath = app.getPath('documents');
+    const folderPath = path.join(documentsPath, relativePath);
+    const filePath = path.join(folderPath, fileName);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return { success: true, message: 'Imagen eliminada correctamente.' };
+    } else {
+      return { success: false, message: 'El archivo no existe.' };
+    }
+  } catch (error) {
+    console.error('Error eliminando imagen:', error);
+    return { success: false, message: 'Error eliminando imagen.' };
+  }
+});
 
 ipcMain.handle('save-image', async (_, fileName, buffer) => {
   try {

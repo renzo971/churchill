@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-background-images', relativePath),
   saveImage: (fileName, buffer) =>
     ipcRenderer.invoke('save-image', fileName, buffer),
+  deleteBackgroundImage: (relativePath, fileName) =>
+    ipcRenderer.invoke('delete-background-image', relativePath, fileName),
   getBackgroundAudios: () => ipcRenderer.invoke('get-background-audios'),
   getDirectoryPath: (subPath) =>
     ipcRenderer.invoke('get-directory-path', subPath),
